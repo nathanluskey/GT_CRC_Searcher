@@ -73,8 +73,6 @@ def checkDifferences(new, old):
     CRCUpdates = ""
     # If there is any update to be made
     if (new != old):
-        # If the new dict isn't empty
-        CRCUpdates = "UPDATES TO CRC 1ST FLOOR:\n"
         if (bool(new)):
             # Check all keys in the new dict for three situations: 1) It's a new key, so a new timeslot opened
             #                                                      2) It's a new value, so somehow the timeslot changed
@@ -87,6 +85,10 @@ def checkDifferences(new, old):
                 else:
                     # Add key to update
                     CRCUpdates += "New Date: {0}, {1} spots open.\n\n".format(key, new[key])
+    
+        # Adding formatting & double checking string isn't empty
+        if (CRCUpdates != ""):
+            CRCUpdates = "UPDATES TO CRC 1ST FLOOR:\n{0}\n[CRC Website](https://b.gatech.edu/2ErPqzW)".format(CRCUpdates)
     return CRCUpdates
 
 def sendNotification(message, verbose=False):
@@ -119,7 +121,7 @@ if __name__ == "__main__":
         CRCUpdates = checkDifferences(newCRCOpenings, CRCOpenings)
         if (CRCUpdates != ""):
             # format message & add the CRC Website to the end
-            message = "{0}\n[CRC Website](https://b.gatech.edu/2ErPqzW)".format(CRCUpdates)
+            message = CRCUpdates
             sendNotification(message, verbose=False)
             # Set new dict to the current openings
             CRCOpenings = newCRCOpenings
