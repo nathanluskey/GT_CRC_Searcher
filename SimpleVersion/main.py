@@ -3,8 +3,9 @@ from bs4 import BeautifulSoup
 from secrets import secrets
 from time import sleep
 from random import randint
+import re
 
-def loadCRC(verbose = False):
+def loadCRC(verbose=False):
     """Loads the CRC Webpage
     Parameters
     ----------
@@ -24,11 +25,34 @@ def loadCRC(verbose = False):
     openings = dict()
     if (len(allTimeCards) != 0):
         for timeCard in allTimeCards:
-            #TODO: Impliment below comments
-                # I think I'll store values in a dict as such:
-                # key - hash the time + date string 
+                # store values in a dict as such:
+                # key - the time + date string 
                 # value - number of spots available
-            pass
+
+                # Using beautifulsoup to parse out important values
+                date = timeCard.find("span", class_="pull-left").text
+                date = date.strip()
+                smallText = timeCard.find("small")
+                time = smallText.text
+                time = time.strip()
+                time = time.partition("\n")[0]
+                spots = smallText.find(class_="pull-right").text
+                spots = spots.strip()
+
+                # Save info to openings dictionary
+                key = "{0} {1}".format(date, time)
+                value = None
+                if (spots == "No Spots Available"):
+                    value = 0
+                else:
+                    value = int(spots.partition(" ")[0])
+                openings[key] = value
+
+                # print info if verbose
+                if verbose:
+                    print("key = {}".format(key))
+                    print("value = {}".format(value))
+
     if verbose:
         print("Total Time Cards = {}".format(len(allTimeCards)))
     return openings
@@ -59,10 +83,10 @@ def checkDifferences(new, old):
                 if key in old:
                     # Check value to see only if change in number of spots
                     if (new[key] > old[key]):
-                        CRCUpdates += "New Openings: {0}, {1} --> {2}\n".format(key, old[key], new[key])
+                        CRCUpdates += "New Openings: {0}, {1} --> {2} spots open.\n\n".format(key, old[key], new[key])
                 else:
                     # Add key to update
-                    CRCUpdates += "New Date: {0}, {1}\n".format(key, new[key])
+                    CRCUpdates += "New Date: {0}, {1} spots open.\n\n".format(key, new[key])
     return CRCUpdates
 
 def sendNotification(message, verbose=False):
@@ -83,24 +107,23 @@ def sendNotification(message, verbose=False):
 if __name__ == "__main__":
     # I made a bitly link to shorten CRC 1st floor
     CRC_URL = "https://b.gatech.edu/2ErPqzW"
-    DELAY = 5# * 60
-    # CRCOpenings = loadCRC()
-    # For quick debugging using an arbitrary exmaple
-    CRCOpenings = {"one" : 1}
+    DELAY = 5 * 60
+    CRCOpenings = dict()
     keepRunning = True
     while keepRunning:
         # Load CRC page
-        # newCRCOpenings = loadCRC(verbose=True)
-        # For quick debugging using an arbitrary update
-        newCRCOpenings = {"one" : 2, "two" : 3}
+        newCRCOpenings = loadCRC(verbose=True)
+        # # For quick debugging using an arbitrary update
+        # newCRCOpenings = {"one" : 2, "two" : 3}
         # Check if there are changes over the last check
         CRCUpdates = checkDifferences(newCRCOpenings, CRCOpenings)
         if (CRCUpdates != ""):
+            # format message & add the CRC Website to the end
             message = "{0}\n[CRC Website](https://b.gatech.edu/2ErPqzW)".format(CRCUpdates)
-            sendNotification(message, verbose=True)
+            sendNotification(message, verbose=False)
             # Set new dict to the current openings
             CRCOpenings = newCRCOpenings
         # Pause for DELAY amount of seconds +/- 30 seconds
-        sleep(DELAY + randint(-3, 3))
+        sleep(DELAY + randint(-30, 30))
         # # For debugging only run through the loop once
         # keepRunning = False
