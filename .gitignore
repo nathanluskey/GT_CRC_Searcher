@@ -1,5 +1,7 @@
 # My code to hide
 secrets.py
+# Don't show my AWS keys
+*.pem
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
