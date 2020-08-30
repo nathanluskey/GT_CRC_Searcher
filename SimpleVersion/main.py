@@ -1,7 +1,7 @@
 from requests import get
 from bs4 import BeautifulSoup
 from secrets import secrets
-from time import sleep
+from time import sleep, localtime
 from random import randint
 import re
 
@@ -91,7 +91,7 @@ def checkDifferences(new, old):
             CRCUpdates = "UPDATES TO CRC 1ST FLOOR:\n{0}\n[CRC Website](https://b.gatech.edu/2ErPqzW)".format(CRCUpdates)
     return CRCUpdates
 
-def sendNotification(message, verbose=False):
+def sendNotification(message, verbose=False, disableNotification=False):
     """Send out notification to all users via HTTPS Requests & Telegram API
 
     Parameters
@@ -100,8 +100,10 @@ def sendNotification(message, verbose=False):
         The message to be sent in the chat
     verbose : bool, optional
         Default False. For printing out useful information.
+    sendSilent : bool, optional
+        Default False. for sending the message silently
     """
-    URL = "https://api.telegram.org/bot{0}/sendMessage?chat_id={1}&text={2}&parse_mode=Markdown".format(secrets.CHAT_BOT_TOKEN, secrets.CHANNEL_ID, message)
+    URL = "https://api.telegram.org/bot{0}/sendMessage?chat_id={1}&text={2}&disable_notification={3}&parse_mode=Markdown".format(secrets.CHAT_BOT_TOKEN, secrets.CHANNEL_ID, message, disableNotification)
     response = get(URL).text
     if verbose:
         print("URL:\n\t{0}\nResponse:\n\t{1}".format(URL, response))
@@ -110,7 +112,7 @@ if __name__ == "__main__":
     # I made a bitly link to shorten CRC 1st floor
     CRC_URL = "https://b.gatech.edu/2ErPqzW"
     DELAY = 5 * 60
-    CRCOpenings = dict()
+    CRCOpenings = loadCRC(verbose=False)
     keepRunning = True
     while keepRunning:
         # Load CRC page
@@ -122,7 +124,13 @@ if __name__ == "__main__":
         if (CRCUpdates != ""):
             # format message & add the CRC Website to the end
             message = CRCUpdates
-            sendNotification(message, verbose=False)
+            # Only send a sound on notification when there's a new date added and the current time is after 7AM
+            currentTime = localtime()
+            currentHour = currentTime.tm_hour
+            if ((currentHour >= 7) and ("Date" in message)):
+                sendNotification(message, verbose=False, disableNotification=False)
+            else:
+                sendNotification(message, verbose=False, disableNotification=True)
             # Set new dict to the current openings
             CRCOpenings = newCRCOpenings
         # Pause for DELAY amount of seconds +/- 30 seconds
